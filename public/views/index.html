@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+
+	<script src="http://localhost:8081/socket.io/socket.io.js"></script>
+	<title>Client de messagerie P2P</title>
+
+</head>
+<body>
+	<h2>Enter your username</h2>
+	<input type="text" id='username' value="Username"></br>	
+	<a id='submit' href="/#">Choose</a></br>
+</body>
+
+<footer>
+	<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+	<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+	<script type="text/javascript">
+    	var peer;
+    	var socket = io.connect('http://localhost:8081');
+    	var username
+    	$("#submit").click(function() {
+    		username = $("#username").val();
+    		//$.post( '/api/add_user', { name: username} );
+    		peer = new Peer(username, {host: 'localhost', port: 9000, path: '/peer'});
+
+    		socket.emit('newUser', {name : username});
+
+    		$.ajax({
+				url: '/dashboard',
+				success:function(data){
+					$("body").replaceWith(data);
+					$("#welcome").text("Welcome "+username);
+				}
+			});
+    		
+
+
+    	});
+    	
+
+    	window.onbeforeunload = function(e) {
+     		socket.emit('removeUser', {name : username});
+    	}
+	</script>
+</footer>
+</html>

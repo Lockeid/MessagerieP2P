@@ -1,0 +1,31 @@
+<h2 id='welcome'></h2>
+<div id='online-users'>
+	<h3>Online users</h3></br>
+</div>
+<div>
+	<p id='dest'>Send message</p>
+	
+
+</div>
+
+<script type="text/javascript">
+		var users;
+    	$.getJSON('/api/get_users', function(data) {
+	    	users = data;
+	    	updateOnline(users);
+	    });
+
+    	function updateOnline(users) {
+		    for(i=0;i<users.length;i++) {
+				$("#online-users").append(
+						"<a class='online-user' href='/#'>"+users[i].name+"</a></br>"
+				)
+			};
+			
+		
+			$("a").click(function(){
+				// Ouvrir onglet
+			})
+		}
+		
+	</script>

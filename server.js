@@ -6,7 +6,7 @@ var port = process.env.PORT || 8080;
 var UserHandler = require('./app/UserHandler.js').UserHandler;
 var userHandler = new UserHandler();
 
-// configuration
+// socket.io init
 var io = require('socket.io');
 var server = require('http').createServer(app);
 var socket = io.listen(8081);
@@ -25,7 +25,7 @@ app.configure(function() {
 	app.use(express.methodOverride()); 					
 });
 
-// socket.io
+// socket.io handling for online users
 socket.sockets.on('connection', function (client) {
 	console.log('socket.io : Connected');
 	//Ajnout de l'utilisateur à la db

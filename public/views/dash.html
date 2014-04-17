@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" ng-app='UsersApp'>
 <head>
 	<meta charset="UTF-8">
 
@@ -8,19 +8,25 @@
 </head>
 
 <body>
-	<h2 id='welcome'></h2>
-	<div id='online-users'>
+	<h2 id='welcome'>Welcome</h2>
+	<div id='online-users' ng-controller='UsersController'>
+		Search : <input type='text' ng-model='searchText' /> </br>
 		<h3>Online users</h3></br>
-	</div>
-	<div>
-		<p id='dest'>Send message</p>
+		<table>
+			<tr ng-repeat='user in users | filter:searchText'>
+				<td id='names'><button ng-click="banUser($index)">Ban</button> {{user.name}}</td>
+			</tr>
+		</table>
+		<button ng-click="reloadUsers()">Reload user list</button>
 	</div>
 
 </body>
 
 <footer>
+	<script src="/js/angular.min.js"></script>
+	<script src="/js/angular-route.min.js"></script>
 	<script src="http://localhost:8081/socket.io/socket.io.js"></script>
-	<script src="https://web.archive.org/web/20140210033927/http://cdn.peerjs.com/0.3/peer.js"></script>
+	<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
 	<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
 	<script type="text/javascript">
 		var stateObject = {};
@@ -31,13 +37,11 @@
 		var username;
 		var peer;
 		var socket;
-		var users;
-		var id;
 		
 		$(document).ready(function() {			
     	    socket = io.connect('http://localhost:8081');
 			$.ajax({
-				url: '/get_username',
+				url: '/api/get_username',
 				success:function(data){
 					username = data;
 					$("#welcome").text("Welcome "+username);
@@ -51,6 +55,9 @@
 
 					peer.on('connection', function(conn) { 
 						var dest = conn.peer.split('_')[1];
+						if(jQuery.inArray(dest,$scope.banned)!==-1) {
+							console.log("banned");
+						}
 						console.log("Connected with "+conn.peer);
 
 						conn.on('data', function(data) {
@@ -65,26 +72,60 @@
 			})
 
 
-			$.getJSON('/api/get_users', function(data) {
-			   	users = data;
-			   	updateOnline(users);
-			});
+			
+			
 
 	    	
 
-	    	function updateOnline(users) {
-			    for(i=0;i<users.length;i++) {
-					$("#online-users").append(
-							"<a class='online-user' target='_blank' href='/sconv/"+username+"/"+users[i].name+"'>"+users[i].name+"</a></br>"
-					)
-				};
-				
-			
-				$("a").click(function(){
-					// Ouvrir onglet
-				})
-			}
+	  //   	function updateOnline(users) {
+			//     for(i=0;i<users.length;i++) {
+			// 		$("#online-users").append(
+			// 				"<a class='online-user' target='_blank' href='/sconv/"+username+"/"+users[i].name+"'>"+users[i].name+"</a></br>"
+			// 		)
+			// 	};
+			// }
 		});
+
+		var app = angular.module("UsersApp",[]);
+
+		// Get the online users
+		app.controller('UsersController',function($scope){
+			$scope.banned = [];
+			$(document).ready(function(){
+				$.getJSON('/api/get_users', function(data) {
+				   	$scope.$apply(function () {
+			            $scope.users = data;
+			            console.log("Loaded scope")
+			        });
+				});
+			})
+			
+			$scope.banUser = function(index){
+				$scope.banned.push($scope.users[index].name);
+				console.log($scope.banned);
+				$scope.users.splice(index, 1);
+				
+			};
+			$scope.reloadUsers = function() {
+				console.log("Reloading users");
+				$.getJSON('/api/get_users', function(data) {
+				   	$scope.$apply(function () {
+				   		$scope.users=[];
+			            for(i=0;i<data.length;i++){
+			            	console.log(jQuery.inArray(data[i].name, $scope.banned));
+			            	if(jQuery.inArray(data[i].name, $scope.banned) ==-1) {
+			            		console.log(data[i].name+' is not banned');
+			            		$scope.users.push(data[i]);
+			            	} else {
+			            		console.log(data[i].name+' is banned');
+			            	}
+			            }
+
+			            console.log("Updated scope")
+			        });
+				});
+			}
+		})
 
 		window.onbeforeunload = function(e) {
      		socket.emit('removeUser', {name : username});

@@ -13,17 +13,16 @@
 <footer>
 	<script src="http://localhost:8081/socket.io/socket.io.js"></script>
 	<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
-	<script src="https://web.archive.org/web/20140210033927/http://cdn.peerjs.com/0.3/peer.js"></script>
+	<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
 	<script type="text/javascript">
 		var peer;
-		var users;
 		$(document).ready(function() {
 			socket = io.connect('http://localhost:8081');
 			var path = window.location.pathname;
 			var str = path.split("/");
-			sync = str[4] || 0;
+			var sync = str[4] || 0;
 	    	$.ajax({
-				url: '/get_conv',
+				url: '/api/get_conv',
 				success:function(data){
 						var username = data.username;
 						var dest = data.dest;
@@ -42,7 +41,6 @@
 							peerDuplex(username, dest)
 						}
 						
-						//peerSetup(username, dest);
 					}
 				})
 
@@ -101,9 +99,6 @@
 			});
 		}
 
-    	window.onbeforeunload = function(e) {
-     		socket.emit('removeUser', {name : username});
-    	}
-	</script>
+    </script>
 </footer>
 </html>

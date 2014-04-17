@@ -17,11 +17,11 @@ module.exports = function(app) {
 		}); 
 	});
 	// Récupération de l'utilisateur 
-	app.get('/get_username', function(req, res){
+	app.get('/api/get_username', function(req, res){
 		res.json(app.locals.username);
 	});
 	// Récupération du destinataire
-	app.get('/get_conv', function(req,res) {
+	app.get('/api/get_conv', function(req,res) {
 		console.log(app.locals.conv);
 		res.send(app.locals.conv);
 	})
@@ -34,18 +34,20 @@ module.exports = function(app) {
 
 	});
 		
-	// Frontend //	
+	// Frontend	
 	app.get('/', function(req, res) {
 		res.sendfile('./public/views/index.html'); 
 	});
+	//No username set
 	app.get('/dashboard', function(req, res) {
 		res.redirect('/');
 	});
+	//Username set
 	app.get('/dashboard/:username', function(req, res) {
 		app.locals.username = req.params.username;
 		res.sendfile('./public/views/dash.html'); 
 	});
-
+	//Forward to the conv
 	app.get('/sconv/:username/:dest',function(req, res){		
 		app.locals.conv = 
 			{

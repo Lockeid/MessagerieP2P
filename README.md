@@ -4,11 +4,19 @@
 
 Les technologies utlisées sont celles du MEAN stack, soit MongoDB, Express, AngularJS, et NodeJS. Il y a aussi utilisation de jQuery pour la manipulation du DOM.
 
+Pour la gestion du P2P, j'ai choisi PeerJS , qui permet d'aisément envoyer des messages entre deux utilisateurs, ainsi que des médias
+
 ### NodeJS et Express
 
 J'ai choisi NodeJS avec Express afin de créer un serveur car cela me permet de facilement moduler mon serveur et de facilement créer des API et de communiquer avec la base de données. 
 
-De plus avec l'utiliser de socket.io qui présente une implémentation assez simple dans Node, je peux facilement mettre à jour en direct la liste des utilisateurs en ligne.
+### socket.io
+
+Avec l'utilisation de socket.io qui présente une implémentation assez simple dans Node, je peux facilement mettre à jour en direct la liste des utilisateurs en ligne.
+
+### PeerJS
+
+Peer propose un module pour Node qui me permet de créer mon propre serveur Peer. L'implémentation côté client est aussi assez simple et permet d'envoyer des messages ainsi que des médias.
 
 ### MongoDB
 

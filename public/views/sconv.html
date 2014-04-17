@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+
+	<title>Discussion</title>
+
+</head>
+<body>
+	
+</body>
+
+<footer>
+	<script src="http://localhost:8081/socket.io/socket.io.js"></script>
+	<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+	<script src="https://web.archive.org/web/20140210033927/http://cdn.peerjs.com/0.3/peer.js"></script>
+	<script type="text/javascript">
+		var peer;
+		var users;
+		$(document).ready(function() {
+			socket = io.connect('http://localhost:8081');
+			var path = window.location.pathname;
+			var str = path.split("/");
+			sync = str[4] || 0;
+	    	$.ajax({
+				url: '/get_conv',
+				success:function(data){
+						var username = data.username;
+						var dest = data.dest;
+						socket.emit('newUser', {name : username});
+						document.title ="Conversation with "+dest;
+						var stateObject = {};
+						var title = "Conversation with "+dest;
+						var newUrl = "/conv/"+dest;
+						history.pushState(stateObject,title,newUrl);
+						console.log("Status : "+sync);
+						if(sync==0) {
+							console.log("Syncing");
+							peerInit(username,dest);
+						} else {
+							console.log("Duplex");
+							peerDuplex(username, dest)
+						}
+						
+						//peerSetup(username, dest);
+					}
+				})
+
+	    			
+    	})
+
+		function peerInit(username, dest){
+			console.log("Peer init");
+			// Connexion de conv_usr_dest vers dest
+			var conv_usr = "conv_"+username+"_"+dest;
+			peer = new Peer(conv_usr, {host: 'localhost', port: 9000, debug : 1});
+			console.log("Connected as "+conv_usr);
+			console.log("connecting with user "+dest);
+			conn = peer.connect(dest);
+			// Envoi du message d'ouverture 
+			conn.on('open', function() {
+				conn.send('tab');
+				console.log("Opening tab");
+				//conn.close();
+			})
+
+			peer.on('connection', function(conn_full) { 
+				conn_full.on('open', function() {
+
+					conn_full.send("Full duplex test");
+
+					conn_full.on('data', function(data) {
+						console.log('Received', data);
+					});
+				})			
+			})
+
+		}
+
+		function peerDuplex(username, dest){
+			console.log("Peer duplex");
+			// Connexion de conv_usr_dest vers dest
+			var conv_usr = "conv_"+username+"_"+dest;
+			peer = new Peer(conv_usr, {host: 'localhost', port: 9000, debug : 1});
+			console.log("Connected as "+conv_usr);
+			console.log("connecting with user "+"conv_"+dest+"_"+username);
+			conn = peer.connect("conv_"+dest+"_"+username);
+
+			conn.on('open', function() {
+				console.log("Duplex initiated");
+
+				conn.on('data', function(data) {
+					alert(data);
+				});
+			})
+		}
+
+		function peerSetup(username, dest) {
+			conn.on('data', function(data) {
+				console.log('Received', data);
+			});
+		}
+
+    	window.onbeforeunload = function(e) {
+     		socket.emit('removeUser', {name : username});
+    	}
+	</script>
+</footer>
+</html>

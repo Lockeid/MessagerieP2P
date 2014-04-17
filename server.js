@@ -15,7 +15,7 @@ var socket = io.listen(8081);
 
 // PeerServer
 var PeerServer = require('peer').PeerServer;
-var peer_server = new PeerServer({port: 9000, path: '/peer'}); 
+var peer = new PeerServer({port: 9000}); 
 
 
 app.configure(function() {
@@ -30,12 +30,12 @@ socket.sockets.on('connection', function (client) {
 	console.log('socket.io : Connected');
 	//Ajnout de l'utilisateur à la db
 	client.on('newUser', function (data) {
-	    console.log("I sware on me mom, I'll rek you %s",data.name);
+	    console.log("Adding %s ",data.name);
 	    userHandler.add([{name : data.name}],function(error, user){}); 
 	  });
 
 	client.on('removeUser', function (data) {
-	    console.log("#Rekt %s",data.name);
+	    console.log("Removing %s",data.name);
 	    userHandler.remove(data.name,function(error, user){
 	    });
 

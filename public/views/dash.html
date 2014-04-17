@@ -1,31 +1,96 @@
-<h2 id='welcome'></h2>
-<div id='online-users'>
-	<h3>Online users</h3></br>
-</div>
-<div>
-	<p id='dest'>Send message</p>
-	
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
 
-</div>
+	<title>P2P Messenger dashboard</title>
 
-<script type="text/javascript">
+</head>
+
+<body>
+	<h2 id='welcome'></h2>
+	<div id='online-users'>
+		<h3>Online users</h3></br>
+	</div>
+	<div>
+		<p id='dest'>Send message</p>
+	</div>
+
+</body>
+
+<footer>
+	<script src="http://localhost:8081/socket.io/socket.io.js"></script>
+	<script src="https://web.archive.org/web/20140210033927/http://cdn.peerjs.com/0.3/peer.js"></script>
+	<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+	<script type="text/javascript">
+		var stateObject = {};
+		var title = "P2P Messenger dashboard";
+		var newUrl = "/dashboard";
+		history.pushState(stateObject,title,newUrl);
+
+		var username;
+		var peer;
+		var socket;
 		var users;
-    	$.getJSON('/api/get_users', function(data) {
-	    	users = data;
-	    	updateOnline(users);
-	    });
-
-    	function updateOnline(users) {
-		    for(i=0;i<users.length;i++) {
-				$("#online-users").append(
-						"<a class='online-user' href='/#'>"+users[i].name+"</a></br>"
-				)
-			};
-			
+		var id;
 		
-			$("a").click(function(){
-				// Ouvrir onglet
+		$(document).ready(function() {			
+    	    socket = io.connect('http://localhost:8081');
+			$.ajax({
+				url: '/get_username',
+				success:function(data){
+					username = data;
+					$("#welcome").text("Welcome "+username);
+
+					
+					peer = new Peer(username, {host: 'localhost', port: 9000, debug : 1});
+					peer.on('open', function(peer_id) {
+						console.log('My peer ID is: ' + peer_id);
+					});
+					socket.emit('newUser', {name : username});
+
+					peer.on('connection', function(conn) { 
+						var dest = conn.peer.split('_')[1];
+						console.log("Connected with "+conn.peer);
+
+						conn.on('data', function(data) {
+							console.log("Received : "+data);
+							if(data === 'tab') {
+								window.open('/sconv/'+username+'/'+dest+'/1', '_blank');
+							}
+						});
+						
+					})
+				}
 			})
-		}
+
+
+			$.getJSON('/api/get_users', function(data) {
+			   	users = data;
+			   	updateOnline(users);
+			});
+
+	    	
+
+	    	function updateOnline(users) {
+			    for(i=0;i<users.length;i++) {
+					$("#online-users").append(
+							"<a class='online-user' target='_blank' href='/sconv/"+username+"/"+users[i].name+"'>"+users[i].name+"</a></br>"
+					)
+				};
+				
+			
+				$("a").click(function(){
+					// Ouvrir onglet
+				})
+			}
+		});
+
+		window.onbeforeunload = function(e) {
+     		socket.emit('removeUser', {name : username});
+    	}
 		
 	</script>
+
+</footer>
+

@@ -14,7 +14,7 @@
 		<h3>Online users</h3></br>
 		<table>
 			<tr ng-repeat='user in users | filter:searchText'>
-				<td id='names'><button ng-click="banUser($index)">Ban</button> {{user.name}}</td>
+				<td id='names'><button ng-click="banUser($index)">Ban</button><button ng-click="talkWith($index)">Talk</button> {{user.name}}</td>
 			</tr>
 		</table>
 		<button ng-click="reloadUsers()">Reload user list</button>
@@ -37,54 +37,6 @@
 		var username;
 		var peer;
 		var socket;
-		
-		$(document).ready(function() {			
-    	    socket = io.connect('http://localhost:8081');
-			$.ajax({
-				url: '/api/get_username',
-				success:function(data){
-					username = data;
-					$("#welcome").text("Welcome "+username);
-
-					
-					peer = new Peer(username, {host: 'localhost', port: 9000, debug : 1});
-					peer.on('open', function(peer_id) {
-						console.log('My peer ID is: ' + peer_id);
-					});
-					socket.emit('newUser', {name : username});
-
-					peer.on('connection', function(conn) { 
-						var dest = conn.peer.split('_')[1];
-						if(jQuery.inArray(dest,$scope.banned)!==-1) {
-							console.log("banned");
-						}
-						console.log("Connected with "+conn.peer);
-
-						conn.on('data', function(data) {
-							console.log("Received : "+data);
-							if(data === 'tab') {
-								window.open('/sconv/'+username+'/'+dest+'/1', '_blank');
-							}
-						});
-						
-					})
-				}
-			})
-
-
-			
-			
-
-	    	
-
-	  //   	function updateOnline(users) {
-			//     for(i=0;i<users.length;i++) {
-			// 		$("#online-users").append(
-			// 				"<a class='online-user' target='_blank' href='/sconv/"+username+"/"+users[i].name+"'>"+users[i].name+"</a></br>"
-			// 		)
-			// 	};
-			// }
-		});
 
 		var app = angular.module("UsersApp",[]);
 
@@ -92,6 +44,46 @@
 		app.controller('UsersController',function($scope){
 			$scope.banned = [];
 			$(document).ready(function(){
+				socket = io.connect('http://localhost:8081');
+				$.ajax({
+					url: '/api/get_username',
+					success:function(data){
+						username = data;
+						$("#welcome").text("Welcome "+username);
+						peer = new Peer(username, {host: 'localhost', port: 9000, debug : 1});
+						peer.on('open', function(peer_id) {
+							console.log('My peer ID is: ' + peer_id);
+						});
+						socket.emit('newUser', {name : username});
+						peer.on('connection', function(conn) { 
+							var dest = conn.peer.split('_')[1];
+
+							conn.on('open',function(){
+								console.log("Connected with "+conn.peer);
+								if(jQuery.inArray(dest,$scope.banned)!=-1) {
+									console.log("banned");
+									conn.send("banned");
+									//conn.close();
+								} else {
+									console.log("not banned");
+									conn.send("not banned");
+
+									conn.on('data', function(data) {									
+										console.log("Received : "+data);
+										if(data === 'tab') {
+											window.open('/sconv/'+username+'/'+dest+'/1', '_blank');
+										}
+									})
+								}
+
+								
+							
+							});
+									
+						})					
+					}
+				})
+				
 				$.getJSON('/api/get_users', function(data) {
 				   	$scope.$apply(function () {
 			            $scope.users = data;
@@ -99,10 +91,11 @@
 			        });
 				});
 			})
+
+			
 			
 			$scope.banUser = function(index){
 				$scope.banned.push($scope.users[index].name);
-				console.log($scope.banned);
 				$scope.users.splice(index, 1);
 				
 			};
@@ -114,16 +107,17 @@
 			            for(i=0;i<data.length;i++){
 			            	console.log(jQuery.inArray(data[i].name, $scope.banned));
 			            	if(jQuery.inArray(data[i].name, $scope.banned) ==-1) {
-			            		console.log(data[i].name+' is not banned');
 			            		$scope.users.push(data[i]);
-			            	} else {
-			            		console.log(data[i].name+' is banned');
 			            	}
 			            }
 
 			            console.log("Updated scope")
 			        });
 				});
+			}
+
+			$scope.talkWith = function(index) {
+				window.open('/sconv/'+username+'/'+$scope.users[index].name, '_blank');
 			}
 		})
 

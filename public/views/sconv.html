@@ -17,7 +17,6 @@
 	<script type="text/javascript">
 		var peer;
 		$(document).ready(function() {
-			socket = io.connect('http://localhost:8081');
 			var path = window.location.pathname;
 			var str = path.split("/");
 			var sync = str[4] || 0;
@@ -26,7 +25,6 @@
 				success:function(data){
 						var username = data.username;
 						var dest = data.dest;
-						socket.emit('newUser', {name : username});
 						document.title ="Conversation with "+dest;
 						var stateObject = {};
 						var title = "Conversation with "+dest;
@@ -57,15 +55,26 @@
 			conn = peer.connect(dest);
 			// Envoi du message d'ouverture 
 			conn.on('open', function() {
-				conn.send('tab');
-				console.log("Opening tab");
+				conn.on('data', function(data) {								
+					console.log("Received : "+data);
+
+					if(data === 'banned') {
+						alert(dest+' banned you');
+						window.close();
+					} else {						
+						conn.send('tab');
+						console.log("Opening tab")
+					};
+				});
 				//conn.close();
+				
 			})
+
 
 			peer.on('connection', function(conn_full) { 
 				conn_full.on('open', function() {
 
-					conn_full.send("Full duplex test");
+					conn_full.send("Full duplex established");
 
 					conn_full.on('data', function(data) {
 						console.log('Received', data);

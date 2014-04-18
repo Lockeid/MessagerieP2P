@@ -12,8 +12,11 @@
 		</div>
 	</div>
 		
-	<div id="dropbox" style="background: #444; font-size: 18px;padding:40px 30px;bottom:0px;position:fixed;margin-right:auto;margin-right:auto; text-align: center;">
+	<div id="dropbox" style="background: #ccc; font-size: 18px;bottom:100px; left:10%;height: 60px;width: 35%;float: left;text-align:center;position:fixed">
 		Drag file here to send it.
+	</div>
+	<div id="dropbox_img" style="background: #ccc; font-size: 18px;bottom:100px;right:10%;height: 60px;width: 35%;float: right;text-align:center;position:fixed">
+		Drag image here to send it.
 	</div>
 	
 </body>
@@ -75,21 +78,46 @@
 					dropbox = $("#dropbox");
 					dropbox.on("dragenter", nothing);
 					dropbox.on("dragover", nothing);
-					dropbox.on("drop", drop);	
+					dropbox.on("drop", dropfile);
+
+					var dropbox_img;
+
+					dropbox_img = $("#dropbox_img");
+					dropbox_img.on("dragenter", nothing);
+					dropbox_img.on("dragover", nothing);
+					dropbox_img.on("drop", dropimg);		
 
 					function nothing(e) {
 					  e.stopPropagation();
 					  e.preventDefault();
 					}
 
-					function drop(e) {
+					function dropfile(e) {
 					  e.stopPropagation();
 					  e.preventDefault();
 
 					  var file = e.originalEvent.dataTransfer.files[0];
 
 					  sendFile(file);
-					}	    			
+					}	
+
+					function dropimg(e) {
+					  e.stopPropagation();
+					  e.preventDefault();
+
+					  var allowedFiles = ['image/jpg','image/gif','image/png'];
+
+					  var file = e.originalEvent.dataTransfer.files[0];
+					  var mimeType= file.type;
+					  
+					  if($.inArray(mimeType,allowedFiles)!=-1) {
+					  	sendImg(file);
+					  } else {
+					  	alert('File type not supported');
+					  }
+
+					  
+					}    			
 	    	})
 
 	    	// Envoi de messages via la connexion active
@@ -107,6 +135,15 @@
 				conn.send({type : 'file', msg : file});
 				$scope.$apply(function(){
 					$scope.messages.push({sender : 'Me', text : 'Sent file'});
+				})
+			}
+
+			// Envoi d'image'
+			sendImg = function(file) {
+				conn = getConn();
+				conn.send({type : 'img', msg : file});
+				$scope.$apply(function(){
+					$scope.messages.push({sender : 'Me', text : 'Sent image'});
 				})
 			}
 
@@ -152,6 +189,15 @@
 									$scope.messages.push({sender : dest, text : 'Received file : '});
 								})
 								$(".msg").last().append('<a target="_blank" href="' + url + '">file</a>')
+							} else if(data.type === 'img'){
+								// Crée Blob et crée lien à utiliser
+								var dataView = new Uint8Array(data.msg);
+						        var dataBlob = new Blob([dataView]);
+						        var url = window.URL.createObjectURL(dataBlob);
+						        $scope.$apply(function(){
+									$scope.messages.push({sender : dest, text : 'Received image : '});
+								})
+								$(".msg").last().append('<img height=150 src="' + url + '"/>')
 							} else{
 								$scope.$apply(function(){
 									$scope.messages.push({sender : dest, text : data.msg});
@@ -196,6 +242,15 @@
 							})
 							$(".msg").last().append('<a target="_blank" href="' + url + '">file</a>')
 							// })
+						} else if(data.type === 'img'){
+								// Crée Blob et crée lien à utiliser
+								var dataView = new Uint8Array(data.msg);
+						        var dataBlob = new Blob([dataView]);
+						        var url = window.URL.createObjectURL(dataBlob);
+						        $scope.$apply(function(){
+									$scope.messages.push({sender : dest, text : 'Received image : '});
+								})
+								$(".msg").last().append('<img height=150 src="' + url + '"/>')
 						} else {
 							$scope.$apply(function(){
 								$scope.messages.push({sender : dest, text : data.msg});

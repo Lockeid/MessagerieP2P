@@ -1,112 +1,165 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" ng-app='MessagesApp'>
 <head>
 	<meta charset="UTF-8">
 
-	<title>Discussion</title>
-
 </head>
 <body>
+	<title>Discussion</title>
+
+	<div ng-controller='MessagesController'>
+		<input type='text' ng-model='text'/> </br><button ng-click='sendMessage()'>Send</button>
+		<div ng-repeat='message in messages'>
+				<p><strong>{{message.sender}}</strong> {{message.text}}</p>
+		</div>
+	</div>
+		
+	</div>
 	
 </body>
 
 <footer>
+	<script src="/js/angular.min.js"></script>
+	<script src="/js/angular-route.min.js"></script>
 	<script src="http://localhost:8081/socket.io/socket.io.js"></script>
 	<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
 	<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
 	<script type="text/javascript">
 		var peer;
-		$(document).ready(function() {
-			var path = window.location.pathname;
-			var str = path.split("/");
-			var sync = str[4] || 0;
-	    	$.ajax({
-				url: '/api/get_conv',
-				success:function(data){
-						var username = data.username;
-						var dest = data.dest;
-						document.title ="Conversation with "+dest;
-						var stateObject = {};
-						var title = "Conversation with "+dest;
-						var newUrl = "/conv/"+dest;
-						history.pushState(stateObject,title,newUrl);
-						console.log("Status : "+sync);
-						if(sync==0) {
-							console.log("Syncing");
-							peerInit(username,dest);
-						} else {
-							console.log("Duplex");
-							peerDuplex(username, dest)
+
+		var app = angular.module('MessagesApp',[]);
+
+		app.controller('MessagesController',function($scope){
+			$scope.messages = [];
+			var conn_retriever;
+
+			function getConn() {
+				return conn_retriever;
+			}
+
+			$(document).ready(function() {
+				var path = window.location.pathname;
+				var str = path.split("/");
+				var sync = str[4] || 0;
+		    	$.ajax({
+					url: '/api/get_conv',
+					success:function(data){
+							var username = data.username;
+							var dest = data.dest;
+							document.title ="Conversation with "+dest;
+							var stateObject = {};
+							var title = "Conversation with "+dest;
+							var newUrl = "/conv/"+dest;
+							history.pushState(stateObject,title,newUrl);
+							console.log("Status : "+sync);
+							if(sync==0) {
+								console.log("Syncing");
+								peerInit(username,dest);
+							} else {
+								console.log("Duplex");
+								peerDuplex(username, dest)
+							}
+							
 						}
-						
-					}
+					})
+
+		    			
+	    	})
+	    	$scope.sendMessage = function() {
+	    		var conn = getConn();
+				var msg_text = $scope.text;
+				$scope.text = '';
+				conn.send({type : 'msg', msg : msg_text});
+				$scope.messages.push({sender: 'Me', text : msg_text})
+			}
+
+			function peerInit(username, dest){
+				console.log("Peer init");
+				// Connexion de conv_usr_dest vers dest
+				var conv_usr = "conv_"+username+"_"+dest;
+				peer = new Peer(conv_usr, {host: 'localhost', port: 9000, debug : 1});
+				console.log("Connected as "+conv_usr);
+				console.log("connecting with user "+dest);
+				conn = peer.connect(dest);
+				// Envoi du message d'ouverture 
+				conn.on('open', function() {
+					conn.on('data', function(data) {								
+						console.log("Received : "+data);
+
+						if(data === 'banned') {
+							alert(dest+' banned you');
+							window.close();
+						} else {						
+							conn.send('tab');
+							console.log("Opening tab")
+						};
+					});
+					//conn.close();
+					
 				})
 
-	    			
-    	})
 
-		function peerInit(username, dest){
-			console.log("Peer init");
-			// Connexion de conv_usr_dest vers dest
-			var conv_usr = "conv_"+username+"_"+dest;
-			peer = new Peer(conv_usr, {host: 'localhost', port: 9000, debug : 1});
-			console.log("Connected as "+conv_usr);
-			console.log("connecting with user "+dest);
-			conn = peer.connect(dest);
-			// Envoi du message d'ouverture 
-			conn.on('open', function() {
-				conn.on('data', function(data) {								
-					console.log("Received : "+data);
+				peer.on('connection', function(conn_full) { 
+					conn_full.on('open', function() {
+						conn_retriever = conn_full;
+						//conn_full.send({type : 'info', msg :"Full duplex established"});
+						// $scope.$apply(function(){
+						// 	$scope.messages.push({sender : 'Me', text :'Test message'});
+						// })
+						//conn_full.send({type : 'msg', msg :"Test message"});
 
-					if(data === 'banned') {
-						alert(dest+' banned you');
-						window.close();
-					} else {						
-						conn.send('tab');
-						console.log("Opening tab")
-					};
-				});
-				//conn.close();
-				
-			})
+						conn_full.on('data', function(data) {
+							console.log('Received', data);
+							if(data.type === 'info') {
+								alert(data.msg);
+							} else {
+								$scope.$apply(function(){
+									$scope.messages.push({sender : dest, text : data.msg});
+								})
+							}
+						});
+
+						window.onbeforeunload =function(e){
+							conn_full.send({type : 'info', msg : "User disconnected"});
+						}
 
 
-			peer.on('connection', function(conn_full) { 
-				conn_full.on('open', function() {
+					})			
+				})
 
-					conn_full.send("Full duplex established");
+			}
 
-					conn_full.on('data', function(data) {
+			function peerDuplex(username, dest){
+				console.log("Peer duplex");
+				// Connexion de conv_usr_dest vers dest
+				var conv_usr = "conv_"+username+"_"+dest;
+				peer = new Peer(conv_usr, {host: 'localhost', port: 9000, debug : 1});
+				console.log("Connected as "+conv_usr);
+				console.log("connecting with user "+"conv_"+dest+"_"+username);
+				conn = peer.connect("conv_"+dest+"_"+username);
+
+				conn.on('open', function() {
+					conn_retriever = conn;
+					console.log("Duplex initiated");
+
+					conn.on('data', function(data) {
 						console.log('Received', data);
+						if(data.type === 'info') {
+							alert(data.msg);
+						} else {
+							$scope.$apply(function(){
+								$scope.messages.push({sender : dest, text : data.msg});
+							})
+						}
+						
 					});
-				})			
-			})
 
-		}
-
-		function peerDuplex(username, dest){
-			console.log("Peer duplex");
-			// Connexion de conv_usr_dest vers dest
-			var conv_usr = "conv_"+username+"_"+dest;
-			peer = new Peer(conv_usr, {host: 'localhost', port: 9000, debug : 1});
-			console.log("Connected as "+conv_usr);
-			console.log("connecting with user "+"conv_"+dest+"_"+username);
-			conn = peer.connect("conv_"+dest+"_"+username);
-
-			conn.on('open', function() {
-				console.log("Duplex initiated");
-
-				conn.on('data', function(data) {
-					alert(data);
-				});
-			})
-		}
-
-		function peerSetup(username, dest) {
-			conn.on('data', function(data) {
-				console.log('Received', data);
-			});
-		}
+					window.onbeforeunload =function(e){
+						conn.send({type : 'info', msg : dest+" disconnected"});
+					}
+				})
+			}
+		})
 
     </script>
 </footer>

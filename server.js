@@ -28,7 +28,7 @@ app.configure(function() {
 // socket.io handling for online users
 socket.sockets.on('connection', function (client) {
 	console.log('socket.io : Connected');
-	//Ajnout de l'utilisateur à la db
+	//Ajout de l'utilisateur à la db
 	client.on('newUser', function (data) {
 	    console.log("Adding %s ",data.name);
 	    userHandler.add([{name : data.name}],function(error, user){}); 

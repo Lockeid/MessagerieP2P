@@ -25,14 +25,6 @@ module.exports = function(app) {
 		console.log(app.locals.conv);
 		res.send(app.locals.conv);
 	})
-	// Création d'un groupe
-	app.post('/api/create_group',function(req, res) {
-
-	});
-	//Récupérer les id des utilisateurs à qui envoyer les messages
-	app.get('/api/get_group_users', function(req,res){
-
-	});
 		
 	// Frontend	
 	app.get('/', function(req, res) {

@@ -26,31 +26,36 @@
 	<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
 	<script type="text/javascript">
 		var peer;
-
+		// Définition pour Angular
 		var app = angular.module('MessagesApp',[]);
-
+		// Controller
 		app.controller('MessagesController',function($scope){
 			$scope.messages = [];
 			var conn_retriever;
 
+			// Permet de récupérer la connexion utile pour envoyer des messages
 			function getConn() {
 				return conn_retriever;
 			}
 
 			$(document).ready(function() {
+				// Vérification de si l'on lance la conversation ou on a été invité à la lancer
 				var path = window.location.pathname;
 				var str = path.split("/");
 				var sync = str[4] || 0;
 		    	$.ajax({
 					url: '/api/get_conv',
 					success:function(data){
+							// Définition de l'utilisateur et du destinataire
 							var username = data.username;
 							var dest = data.dest;
 							document.title ="Conversation with "+dest;
+							// Mise à jour de l'URL et du titre de la fenêtre
 							var stateObject = {};
 							var title = "Conversation with "+dest;
 							var newUrl = "/conv/"+dest;
 							history.pushState(stateObject,title,newUrl);
+							// Indique si l'on cherche à se synchroniser ou non
 							console.log("Status : "+sync);
 							if(sync==0) {
 								console.log("Syncing");
@@ -61,10 +66,10 @@
 							}
 							
 						}
-					})
-
-		    			
+					})		    			
 	    	})
+
+	    	// Envoi de messages via la connexion active
 	    	$scope.sendMessage = function() {
 	    		var conn = getConn();
 				var msg_text = $scope.text;
@@ -73,6 +78,7 @@
 				$scope.messages.push({sender: 'Me', text : msg_text})
 			}
 
+			// Lance la conversation lorsque que l'on est l'initiateur
 			function peerInit(username, dest){
 				console.log("Peer init");
 				// Connexion de conv_usr_dest vers dest
@@ -83,9 +89,8 @@
 				conn = peer.connect(dest);
 				// Envoi du message d'ouverture 
 				conn.on('open', function() {
-					conn.on('data', function(data) {								
-						console.log("Received : "+data);
-
+					conn.on('data', function(data) {	
+						// Vérification du statut
 						if(data === 'banned') {
 							alert(dest+' banned you');
 							window.close();
@@ -94,22 +99,16 @@
 							console.log("Opening tab")
 						};
 					});
-					//conn.close();
 					
 				})
 
-
+				// Après connexion du destinataire
 				peer.on('connection', function(conn_full) { 
 					conn_full.on('open', function() {
 						conn_retriever = conn_full;
-						//conn_full.send({type : 'info', msg :"Full duplex established"});
-						// $scope.$apply(function(){
-						// 	$scope.messages.push({sender : 'Me', text :'Test message'});
-						// })
-						//conn_full.send({type : 'msg', msg :"Test message"});
 
 						conn_full.on('data', function(data) {
-							console.log('Received', data);
+							// Gère la réception de messages
 							if(data.type === 'info') {
 								alert(data.msg);
 							} else {
@@ -118,7 +117,7 @@
 								})
 							}
 						});
-
+						// Indique que l'on a fermé la discussion
 						window.onbeforeunload =function(e){
 							conn_full.send({type : 'info', msg : "User disconnected"});
 						}
@@ -128,7 +127,7 @@
 				})
 
 			}
-
+			// Lorsque l'on est le destinataire
 			function peerDuplex(username, dest){
 				console.log("Peer duplex");
 				// Connexion de conv_usr_dest vers dest
@@ -141,7 +140,7 @@
 				conn.on('open', function() {
 					conn_retriever = conn;
 					console.log("Duplex initiated");
-
+					// Gère la réception des messages
 					conn.on('data', function(data) {
 						console.log('Received', data);
 						if(data.type === 'info') {
@@ -153,7 +152,7 @@
 						}
 						
 					});
-
+					// Indique la déconnexion
 					window.onbeforeunload =function(e){
 						conn.send({type : 'info', msg : dest+" disconnected"});
 					}

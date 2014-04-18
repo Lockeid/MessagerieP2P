@@ -29,6 +29,7 @@
 	<script src="http://cdn.peerjs.com/0.3/peer.js"></script>
 	<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
 	<script type="text/javascript">
+		// Mise à jour de l'URL pour faire plus propre
 		var stateObject = {};
 		var title = "P2P Messenger dashboard";
 		var newUrl = "/dashboard";
@@ -37,10 +38,10 @@
 		var username;
 		var peer;
 		var socket;
-
+		// Définition pour Angular
 		var app = angular.module("UsersApp",[]);
 
-		// Get the online users
+		// Controller 
 		app.controller('UsersController',function($scope){
 			$scope.banned = [];
 			$(document).ready(function(){
@@ -48,18 +49,24 @@
 				$.ajax({
 					url: '/api/get_username',
 					success:function(data){
+						// Récupération du nom d'utilisateur
 						username = data;
 						$("#welcome").text("Welcome "+username);
+						// Connexion auprès du serveur Peer
 						peer = new Peer(username, {host: 'localhost', port: 9000, debug : 1});
 						peer.on('open', function(peer_id) {
 							console.log('My peer ID is: ' + peer_id);
 						});
+						// Connexion auprès du serveur pour être marqué comme en ligne
 						socket.emit('newUser', {name : username});
+
+						// Réaction à une connexion extérieure
 						peer.on('connection', function(conn) { 
 							var dest = conn.peer.split('_')[1];
 
 							conn.on('open',function(){
 								console.log("Connected with "+conn.peer);
+								// Vérification de l'état de l'utilisateur souhaitant se connecter
 								if(jQuery.inArray(dest,$scope.banned)!=-1) {
 									console.log("banned");
 									conn.send("banned");
@@ -67,23 +74,19 @@
 								} else {
 									console.log("not banned");
 									conn.send("not banned");
-
+									// Ouverture de la fenêtre de conversation dans un nouvel onglet
 									conn.on('data', function(data) {									
 										console.log("Received : "+data);
 										if(data === 'tab') {
 											window.open('/sconv/'+username+'/'+dest+'/1', '_blank');
 										}
 									})
-								}
-
-								
-							
-							});
-									
+								}							
+							});									
 						})					
 					}
 				})
-				
+				// Récupération des utilisateurs en ligne
 				$.getJSON('/api/get_users', function(data) {
 				   	$scope.$apply(function () {
 			            $scope.users = data;
@@ -91,14 +94,14 @@
 			        });
 				});
 			})
-
-			
-			
+		
+			// Rajout de l'utilisateur sur la blacklist
 			$scope.banUser = function(index){
 				$scope.banned.push($scope.users[index].name);
 				$scope.users.splice(index, 1);
 				
 			};
+			// Mise à jour de la liste des utilisateurs
 			$scope.reloadUsers = function() {
 				console.log("Reloading users");
 				$.getJSON('/api/get_users', function(data) {
@@ -115,12 +118,12 @@
 			        });
 				});
 			}
-
+			// Lancement de la conversation
 			$scope.talkWith = function(index) {
 				window.open('/sconv/'+username+'/'+$scope.users[index].name, '_blank');
 			}
 		})
-
+		//Indique au serveur que l'utilisateur se déconnecte
 		window.onbeforeunload = function(e) {
      		socket.emit('removeUser', {name : username});
     	}

@@ -2,18 +2,18 @@
 <html lang="en" ng-app='MessagesApp'>
 <head>
 	<meta charset="UTF-8">
-
+	<title>Discussion</title>
 </head>
 <body>
-	<title>Discussion</title>
-
 	<div ng-controller='MessagesController'>
-		<input type='text' ng-model='text'/> </br><button ng-click='sendMessage()'>Send</button>
+		<input type='text' ng-model='text'/><button ng-click='sendMessage()'>Send</button>
 		<div ng-repeat='message in messages'>
-				<p><strong>{{message.sender}}</strong> {{message.text}}</p>
+				<p class='msg'><strong>{{message.sender}}</strong> {{message.text}}</p>
 		</div>
 	</div>
 		
+	<div id="dropbox" style="background: #444; font-size: 18px;padding:40px 30px;bottom:0px;position:fixed;margin-right:auto;margin-right:auto; text-align: center;">
+		Drag file here to send it.
 	</div>
 	
 </body>
@@ -66,7 +66,30 @@
 							}
 							
 						}
-					})		    			
+					})
+
+
+		    		// Envoi de fichiers
+					var dropbox;
+
+					dropbox = $("#dropbox");
+					dropbox.on("dragenter", nothing);
+					dropbox.on("dragover", nothing);
+					dropbox.on("drop", drop);	
+
+					function nothing(e) {
+					  e.stopPropagation();
+					  e.preventDefault();
+					}
+
+					function drop(e) {
+					  e.stopPropagation();
+					  e.preventDefault();
+
+					  var file = e.originalEvent.dataTransfer.files[0];
+
+					  sendFile(file);
+					}	    			
 	    	})
 
 	    	// Envoi de messages via la connexion active
@@ -76,6 +99,15 @@
 				$scope.text = '';
 				conn.send({type : 'msg', msg : msg_text});
 				$scope.messages.push({sender: 'Me', text : msg_text})
+			}
+
+			// Envoi de fichier
+			sendFile = function(file) {
+				conn = getConn();
+				conn.send({type : 'file', msg : file});
+				$scope.$apply(function(){
+					$scope.messages.push({sender : 'Me', text : 'Sent file'});
+				})
 			}
 
 			// Lance la conversation lorsque que l'on est l'initiateur
@@ -111,7 +143,16 @@
 							// Gère la réception de messages
 							if(data.type === 'info') {
 								alert(data.msg);
-							} else {
+							} else if(data.type === 'file'){
+								// Crée Blob et crée lien à utiliser
+								var dataView = new Uint8Array(data.msg);
+						        var dataBlob = new Blob([dataView]);
+						        var url = window.URL.createObjectURL(dataBlob);
+						        $scope.$apply(function(){
+									$scope.messages.push({sender : dest, text : 'Received file : '});
+								})
+								$(".msg").last().append('<a target="_blank" href="' + url + '">file</a>')
+							} else{
 								$scope.$apply(function(){
 									$scope.messages.push({sender : dest, text : data.msg});
 								})
@@ -145,6 +186,16 @@
 						console.log('Received', data);
 						if(data.type === 'info') {
 							alert(data.msg);
+						} else if(data.type === 'file'){
+							// Crée Blob et crée lien à utiliser
+							var dataView = new Uint8Array(data.msg);
+						    var dataBlob = new Blob([dataView]);
+						    var url = window.URL.createObjectURL(dataBlob);
+							$scope.$apply(function(){
+								$scope.messages.push({sender : dest, text : 'Received file : '});
+							})
+							$(".msg").last().append('<a target="_blank" href="' + url + '">file</a>')
+							// })
 						} else {
 							$scope.$apply(function(){
 								$scope.messages.push({sender : dest, text : data.msg});
@@ -156,7 +207,16 @@
 					window.onbeforeunload =function(e){
 						conn.send({type : 'info', msg : dest+" disconnected"});
 					}
+
 				})
+			}
+			// Envoi de messages avec la touche entrée
+			window.onkeyup = function(e) {
+				if(e.keyCode == 13) {
+					$scope.$apply(function(){
+						$scope.sendMessage();
+					})
+				}
 			}
 		})
 
